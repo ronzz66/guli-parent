@@ -1,0 +1,62 @@
+package com.ron.aclservice.service.impl;
+
+
+
+import com.ron.aclservice.entity.User;
+import com.ron.aclservice.service.PermissionService;
+import com.ron.aclservice.service.UserService;
+
+import com.ron.serurity.entity.SecurityUser;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+
+/**
+ * <p>
+ * 自定义userDetailsService - 认证用户详情
+ * </p>
+ *
+ * @author qy
+ * @since 2019-11-08
+ */
+@Service("userDetailsService") //实现SpringSecurity提供的接口
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private PermissionService permissionService;
+
+    /***
+     * 根据账号获取用户信息
+     * @param username:
+     * @return: org.springframework.security.core.userdetails.UserDetails
+     */
+    //查询用户和权限的方法 返回springsecurity需要的SecurityUser对象
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 从数据库中取出用户信息
+        User user = userService.selectByUsername(username);
+
+        // 判断用户是否存在
+        if (null == user){
+            //throw new UsernameNotFoundException("用户名不存在！");
+        }
+        // 返回UserDetails实现类
+        com.ron.serurity.entity.User curUser = new com.ron.serurity.entity.User();
+        BeanUtils.copyProperties(user,curUser);
+
+        List<String> authorities = permissionService.selectPermissionValueByUserId(user.getId());
+        SecurityUser securityUser = new SecurityUser(curUser);
+        securityUser.setPermissionValueList(authorities);
+        return securityUser;
+    }
+
+}
